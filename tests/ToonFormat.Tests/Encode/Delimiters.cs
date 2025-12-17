@@ -50,7 +50,7 @@ tags[3	]: reading	gaming	coding
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ tags[3|]: reading|gaming|coding
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ tags[3]: reading,gaming,coding
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -162,7 +162,7 @@ items[2	]{sku	qty	price}:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -208,7 +208,7 @@ items[2|]{sku|qty|price}:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ pairs[2	]:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -292,7 +292,7 @@ pairs[2|]:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -321,7 +321,7 @@ pairs[2|]:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -350,7 +350,7 @@ pairs[2|]:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -388,7 +388,7 @@ pairs[2|]:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -426,7 +426,7 @@ pairs[2|]:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -459,7 +459,7 @@ items[3	]: a	"b\tc"	d
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -492,7 +492,7 @@ items[3|]: a|"b|c"|d
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -524,7 +524,7 @@ items[2	]: a,b	c,d
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -556,7 +556,7 @@ items[2|]: a,b|c,d
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -600,7 +600,7 @@ items[2]{id,note}:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -644,7 +644,7 @@ items[2	]{id	note}:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -672,7 +672,7 @@ note: a,b
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -700,7 +700,7 @@ note: a,b
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -736,7 +736,7 @@ pairs[1|]:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -772,7 +772,7 @@ pairs[1	]:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -805,7 +805,7 @@ items[3|]: "true"|"42"|"-3.14"
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
 }

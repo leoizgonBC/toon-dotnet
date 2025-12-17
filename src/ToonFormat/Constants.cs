@@ -102,4 +102,16 @@ namespace ToonFormat
         Safe
     }
 
+    /// <summary>
+    /// Path expansion options for decoder (TOON Spec §13.4)
+    /// </summary>
+    public enum ToonExpandPaths
+    {
+        /// <summary>Dotted keys are treated as literal keys. No expansion is performed.</summary>
+        Off,
+
+        /// <summary>Expand eligible dotted keys into nested object structures with deep-merge semantics.</summary>
+        Safe
+    }
+
 }

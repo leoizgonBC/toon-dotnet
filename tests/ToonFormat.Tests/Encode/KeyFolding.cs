@@ -55,7 +55,7 @@ a.b.c: 1
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ data.meta.items[2]: x,y
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -151,7 +151,7 @@ a.b.items[2]{id,name}:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -197,7 +197,7 @@ a.b:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -240,7 +240,7 @@ a.b.c.d: 1
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -281,7 +281,7 @@ a:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -322,7 +322,7 @@ a:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -362,7 +362,7 @@ a:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -404,7 +404,7 @@ a.b.c:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -441,7 +441,7 @@ a.b[2]: 1,2
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -488,7 +488,7 @@ short.path: 3
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
 }

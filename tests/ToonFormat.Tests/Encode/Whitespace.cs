@@ -40,7 +40,7 @@ id: 123
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ items[2]: a,b
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -113,7 +113,7 @@ user:
 
         var result = ToonEncoder.Encode(input, options);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
 }

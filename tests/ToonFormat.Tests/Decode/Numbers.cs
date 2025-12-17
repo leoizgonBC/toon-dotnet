@@ -192,12 +192,14 @@ value: 1e-10
 
         // Act & Assert
         var result = ToonDecoder.Decode(input);
-
-        var expected = JsonNode.Parse("""
-{"value":0.0000000001}
-""");
-
-        Assert.True(JsonNode.DeepEquals(result, expected));
+        var resultObj = result as System.Text.Json.Nodes.JsonObject;
+        Assert.NotNull(resultObj);
+        
+        var value = resultObj["value"]?.GetValue<double>();
+        Assert.NotNull(value);
+        
+        // Compare with tolerance for floating point precision
+        Assert.Equal(1e-10, value.Value, precision: 15);
     }
 
     [Fact]

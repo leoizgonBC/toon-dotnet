@@ -54,7 +54,7 @@ pairs[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ pairs[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ pairs[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ pairs[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -187,7 +187,7 @@ pairs[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -220,7 +220,7 @@ pairs[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -255,7 +255,7 @@ pairs[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -276,7 +276,7 @@ pairs[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -307,7 +307,7 @@ pairs[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -350,7 +350,7 @@ user:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -385,7 +385,7 @@ items[3]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -422,7 +422,7 @@ items[2]:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
 }

@@ -58,7 +58,7 @@ items[2]{sku,qty,price}:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ items[2]{id,value}:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ items[2]{sku,desc,qty}:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ items[2]{id,status}:
         // Act & Assert
         var result = ToonEncoder.Encode(input);
 
-        Assert.Equal(expected, result);
+        Assert.Equal(expected.NormalizeLF(), result);
     }
 
 }

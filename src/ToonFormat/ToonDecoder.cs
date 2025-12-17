@@ -58,7 +58,8 @@ public static class ToonDecoder
         var resolvedOptions = new ResolvedDecodeOptions
         {
             Indent = options.Indent,
-            Strict = options.Strict
+            Strict = options.Strict,
+            ExpandPaths = options.ExpandPaths
         };
 
         // Scan the source text into structured lines
@@ -72,7 +73,16 @@ public static class ToonDecoder
 
         // Create cursor and decode
         var cursor = new LineCursor(scanResult.Lines, scanResult.BlankLines);
-        return Decoders.DecodeValueFromLines(cursor, resolvedOptions);
+        var decodeResult = Decoders.DecodeValueFromLinesWithMetadata(cursor, resolvedOptions);
+        var result = decodeResult.Value;
+
+        // Apply path expansion if enabled (TOON Spec §13.4)
+        if (resolvedOptions.ExpandPaths == ToonExpandPaths.Safe && result is JsonObject obj)
+        {
+            result = PathExpander.ExpandPaths(obj, resolvedOptions.Strict, decodeResult.QuotedKeys);
+        }
+
+        return result;
     }
 
     /// <summary>
