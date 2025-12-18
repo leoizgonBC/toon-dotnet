@@ -236,24 +236,17 @@ namespace ToonFormat.Internal.Encode
 
         /// <summary>
         /// Checks if a JsonNode is a primitive value (null, string, number, or boolean).
+        /// Optimized to avoid multiple TryGetValue calls.
         /// </summary>
         public static bool IsJsonPrimitive(JsonNode? value)
         {
+            // null is a primitive
             if (value == null)
                 return true;
 
-            if (value is JsonValue jsonValue)
-            {
-                // Check if it's a primitive type
-                return jsonValue.TryGetValue<string>(out _)
-                    || jsonValue.TryGetValue<bool>(out _)
-                    || jsonValue.TryGetValue<int>(out _)
-                    || jsonValue.TryGetValue<long>(out _)
-                    || jsonValue.TryGetValue<double>(out _)
-                    || jsonValue.TryGetValue<decimal>(out _);
-            }
-
-            return false;
+            // JsonValue is a primitive (string, number, boolean)
+            // JsonArray and JsonObject are not primitives
+            return value is JsonValue;
         }
 
         /// <summary>
@@ -288,26 +281,44 @@ namespace ToonFormat.Internal.Encode
 
         /// <summary>
         /// Checks if a JsonArray contains only primitive values.
+        /// Optimized to avoid LINQ allocation.
         /// </summary>
         public static bool IsArrayOfPrimitives(JsonArray array)
         {
-            return array.All(item => IsJsonPrimitive(item));
+            foreach (var item in array)
+            {
+                if (!IsJsonPrimitive(item))
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>
         /// Checks if a JsonArray contains only arrays.
+        /// Optimized to avoid LINQ allocation.
         /// </summary>
         public static bool IsArrayOfArrays(JsonArray array)
         {
-            return array.All(item => IsJsonArray(item));
+            foreach (var item in array)
+            {
+                if (item is not JsonArray)
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>
         /// Checks if a JsonArray contains only objects.
+        /// Optimized to avoid LINQ allocation.
         /// </summary>
         public static bool IsArrayOfObjects(JsonArray array)
         {
-            return array.All(item => IsJsonObject(item));
+            foreach (var item in array)
+            {
+                if (item is not JsonObject)
+                    return false;
+            }
+            return true;
         }
 
         // #endregion

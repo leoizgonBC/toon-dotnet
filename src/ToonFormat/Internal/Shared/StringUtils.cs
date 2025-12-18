@@ -1,4 +1,6 @@
 #nullable enable
+using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ToonFormat.Internal.Shared
@@ -9,44 +11,93 @@ namespace ToonFormat.Internal.Shared
     /// - UnescapeString: Restores escape sequences during decoding
     /// - FindClosingQuote: Finds the position of the matching closing quote, considering escapes
     /// - FindUnquotedChar: Finds the position of the target character not inside quotes
+    /// Optimized with Span-based operations where possible.
     /// </summary>
     internal static class StringUtils
     {
         /// <summary>
         /// Escapes special characters: backslash, quotes, newlines, carriage returns, tabs.
+        /// Optimized to scan first and only allocate if needed.
         /// Equivalent to TS escapeString.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static string EscapeString(string value)
         {
             if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
 
-            return value
-                .Replace("\\", $"{Constants.BACKSLASH}{Constants.BACKSLASH}")
-                .Replace("\"", $"{Constants.BACKSLASH}{Constants.DOUBLE_QUOTE}")
-                .Replace("\n", $"{Constants.BACKSLASH}n")
-                .Replace("\r", $"{Constants.BACKSLASH}r")
-                .Replace("\t", $"{Constants.BACKSLASH}t");
+            // Fast path: check if escaping is needed at all
+            var span = value.AsSpan();
+            bool needsEscaping = false;
+            for (int i = 0; i < span.Length; i++)
+            {
+                var ch = span[i];
+                if (ch == '\\' || ch == '"' || ch == '\n' || ch == '\r' || ch == '\t')
+                {
+                    needsEscaping = true;
+                    break;
+                }
+            }
+
+            if (!needsEscaping)
+                return value;
+
+            // Slow path: build escaped string
+            var sb = new StringBuilder(value.Length + 8);
+            for (int i = 0; i < span.Length; i++)
+            {
+                var ch = span[i];
+                switch (ch)
+                {
+                    case '\\':
+                        sb.Append("\\\\");
+                        break;
+                    case '"':
+                        sb.Append("\\\"");
+                        break;
+                    case '\n':
+                        sb.Append("\\n");
+                        break;
+                    case '\r':
+                        sb.Append("\\r");
+                        break;
+                    case '\t':
+                        sb.Append("\\t");
+                        break;
+                    default:
+                        sb.Append(ch);
+                        break;
+                }
+            }
+            return sb.ToString();
         }
 
         /// <summary>
         /// Unescapes the string, supporting \n, \t, \r, \\, \". Invalid sequences throw <see cref="ToonFormatException"/>.
+        /// Optimized to check for escapes first and avoid allocation when not needed.
         /// Equivalent to TS unescapeString.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static string UnescapeString(string value)
         {
             if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
 
+            // Fast path: check if unescaping is needed at all
+            if (value.AsSpan().IndexOf('\\') < 0)
+                return value;
+
             var sb = new StringBuilder(value.Length);
+            var span = value.AsSpan();
             int i = 0;
-            while (i < value.Length)
+            
+            while (i < span.Length)
             {
-                var ch = value[i];
+                var ch = span[i];
                 if (ch == Constants.BACKSLASH)
                 {
-                    if (i + 1 >= value.Length)
+                    if (i + 1 >= span.Length)
                         throw ToonFormatException.Syntax("Invalid escape sequence: backslash at end of string");
 
-                    var next = value[i + 1];
+                    var next = span[i + 1];
                     switch (next)
                     {
                         case 'n':
@@ -85,19 +136,23 @@ namespace ToonFormat.Internal.Shared
         /// Finds the position of the next double quote in the string starting from 'start', considering escapes.
         /// Returns -1 if not found. Equivalent to TS findClosingQuote.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static int FindClosingQuote(string content, int start)
         {
+            var span = content.AsSpan();
             int i = start + 1;
-            while (i < content.Length)
+            while (i < span.Length)
             {
+                var ch = span[i];
+                
                 // Skip the next character when encountering an escape inside quotes
-                if (content[i] == Constants.BACKSLASH && i + 1 < content.Length)
+                if (ch == Constants.BACKSLASH && i + 1 < span.Length)
                 {
                     i += 2;
                     continue;
                 }
 
-                if (content[i] == Constants.DOUBLE_QUOTE)
+                if (ch == Constants.DOUBLE_QUOTE)
                     return i;
 
                 i++;
@@ -109,28 +164,32 @@ namespace ToonFormat.Internal.Shared
         /// Finds the position of the target character not inside quotes; returns -1 if not found.
         /// Escape sequences inside quotes are skipped. Equivalent to TS findUnquotedChar.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static int FindUnquotedChar(string content, char target, int start = 0)
         {
+            var span = content.AsSpan();
             bool inQuotes = false;
             int i = start;
 
-            while (i < content.Length)
+            while (i < span.Length)
             {
-                if (inQuotes && content[i] == Constants.BACKSLASH && i + 1 < content.Length)
+                var ch = span[i];
+                
+                if (inQuotes && ch == Constants.BACKSLASH && i + 1 < span.Length)
                 {
                     // Skip the next character for escape sequences inside quotes
                     i += 2;
                     continue;
                 }
 
-                if (content[i] == Constants.DOUBLE_QUOTE)
+                if (ch == Constants.DOUBLE_QUOTE)
                 {
                     inQuotes = !inQuotes;
                     i++;
                     continue;
                 }
 
-                if (!inQuotes && content[i] == target)
+                if (!inQuotes && ch == target)
                     return i;
 
                 i++;

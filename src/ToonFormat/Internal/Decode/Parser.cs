@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using ToonFormat.Internal.Shared;
 
@@ -234,10 +234,17 @@ namespace ToonFormat.Internal.Decode
 
         /// <summary>
         /// Maps an array of string tokens to JSON primitive values.
+        /// Optimized to avoid LINQ allocation.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static List<JsonNode?> MapRowValuesToPrimitives(List<string> values)
         {
-            return values.Select(v => ParsePrimitiveToken(v)).ToList();
+            var result = new List<JsonNode?>(values.Count);
+            for (int i = 0; i < values.Count; i++)
+            {
+                result.Add(ParsePrimitiveToken(values[i]));
+            }
+            return result;
         }
 
         // #endregion
@@ -246,42 +253,50 @@ namespace ToonFormat.Internal.Decode
 
         /// <summary>
         /// Parses a primitive token (null, boolean, number, or string).
+        /// Optimized with fast paths for common cases.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static JsonNode? ParsePrimitiveToken(string token)
         {
-            var trimmed = token.Trim();
+            var span = token.AsSpan().Trim();
 
             // Empty token
-            if (string.IsNullOrEmpty(trimmed))
+            if (span.IsEmpty)
                 return JsonValue.Create(string.Empty);
 
-            // Quoted string (if starts with quote, it MUST be properly quoted)
-            if (trimmed.StartsWith(Constants.DOUBLE_QUOTE.ToString()))
+            var firstChar = span[0];
+
+            // Quoted string - fast check on first char
+            if (firstChar == '"')
             {
-                return JsonValue.Create(ParseStringLiteral(trimmed));
+                return JsonValue.Create(ParseStringLiteral(span.ToString()));
             }
 
-            // Boolean or null literals
-            if (LiteralUtils.IsBooleanOrNullLiteral(trimmed))
+            // Boolean or null literals - fast path for common lengths
+            if (span.Length >= 4 && span.Length <= 5)
             {
-                if (trimmed == Constants.TRUE_LITERAL)
+                if (span.SequenceEqual("true".AsSpan()))
                     return JsonValue.Create(true);
-                if (trimmed == Constants.FALSE_LITERAL)
+                if (span.SequenceEqual("false".AsSpan()))
                     return JsonValue.Create(false);
-                if (trimmed == Constants.NULL_LITERAL)
+                if (span.SequenceEqual("null".AsSpan()))
                     return null;
             }
 
-            // Numeric literal
-            if (LiteralUtils.IsNumericLiteral(trimmed))
+            // Numeric literal - check first char for digit or sign
+            if (char.IsDigit(firstChar) || firstChar == '-' || firstChar == '+' || firstChar == '.')
             {
-                var parsedNumber = double.Parse(trimmed, CultureInfo.InvariantCulture);
-                parsedNumber = FloatUtils.NormalizeSignedZero(parsedNumber);
-                return JsonValue.Create(parsedNumber);
+                var trimmed = span.ToString();
+                if (LiteralUtils.IsNumericLiteral(trimmed))
+                {
+                    var parsedNumber = double.Parse(trimmed, CultureInfo.InvariantCulture);
+                    parsedNumber = FloatUtils.NormalizeSignedZero(parsedNumber);
+                    return JsonValue.Create(parsedNumber);
+                }
             }
 
             // Unquoted string
-            return JsonValue.Create(trimmed);
+            return JsonValue.Create(span.ToString());
         }
 
         /// <summary>

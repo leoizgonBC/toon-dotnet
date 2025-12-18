@@ -1,8 +1,9 @@
 #nullable enable
 using System;
+using System.Buffers;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 
 namespace ToonFormat.Internal.Encode
@@ -56,19 +57,33 @@ namespace ToonFormat.Internal.Encode
 
         /// <summary>
         /// Encodes a JsonObject as key-value pairs.
+        /// Optimized to avoid repeated allocations.
         /// </summary>
         public static void EncodeObject(JsonObject value, LineWriter writer, int depth, ResolvedEncodeOptions options, IReadOnlySet<string>? rootLiteralKeys = null,
             string? pathPrefix = null, int? remainingDepth = null)
         {
-            var keys = (value as IDictionary<string, JsonNode>).Keys!;
+            var dict = (IDictionary<string, JsonNode?>)value;
+            var keys = dict.Keys;
 
             // At root level (depth 0), collect all literal dotted keys for collision checking
             if (depth == 0 && rootLiteralKeys == null)
             {
-                rootLiteralKeys = new HashSet<string>(keys.Where(k => k.Contains('.')));
+                HashSet<string>? dottedKeys = null;
+                foreach (var k in keys)
+                {
+                    if (k.Contains('.'))
+                    {
+                        dottedKeys ??= new HashSet<string>();
+                        dottedKeys.Add(k);
+                    }
+                }
+                rootLiteralKeys = dottedKeys ?? (IReadOnlySet<string>)Array.Empty<string>().ToHashSet();
             }
 
             var effectiveFlattenDepth = remainingDepth ?? options.FlattenDepth;
+
+            // Cache keys as array to avoid repeated ToImmutableArray calls
+            var keysArray = keys as IReadOnlyCollection<string> ?? keys.ToArray();
 
             foreach (var kvp in value)
             {
@@ -78,7 +93,7 @@ namespace ToonFormat.Internal.Encode
                     writer,
                     depth,
                     options,
-                    keys.ToImmutableArray(),
+                    keysArray,
                     rootLiteralKeys,
                     pathPrefix,
                     effectiveFlattenDepth
@@ -180,6 +195,7 @@ namespace ToonFormat.Internal.Encode
 
         /// <summary>
         /// Encodes a JsonArray with appropriate formatting (inline, tabular, or expanded).
+        /// Optimized to avoid LINQ allocations.
         /// </summary>
         public static void EncodeArray(
             string? key,
@@ -206,12 +222,20 @@ namespace ToonFormat.Internal.Encode
             // Array of arrays (all primitives)
             if (Normalize.IsArrayOfArrays(value))
             {
-                var allPrimitiveArrays = value.All(item =>
-                    item is JsonArray arr && Normalize.IsArrayOfPrimitives(arr));
+                // Check all are primitive arrays without LINQ
+                bool allPrimitiveArrays = true;
+                for (int i = 0; i < value.Count; i++)
+                {
+                    if (!(value[i] is JsonArray arr && Normalize.IsArrayOfPrimitives(arr)))
+                    {
+                        allPrimitiveArrays = false;
+                        break;
+                    }
+                }
 
                 if (allPrimitiveArrays)
                 {
-                    EncodeArrayOfArraysAsListItems(key, value.Cast<JsonArray>().ToList(), writer, depth, options);
+                    EncodeArrayOfArraysAsListItemsDirect(key, value, writer, depth, options);
                     return;
                 }
             }
@@ -219,11 +243,10 @@ namespace ToonFormat.Internal.Encode
             // Array of objects
             if (Normalize.IsArrayOfObjects(value))
             {
-                var objects = value.Cast<JsonObject>().ToList();
-                var header = ExtractTabularHeader(objects);
+                var header = ExtractTabularHeaderDirect(value);
                 if (header != null)
                 {
-                    EncodeArrayOfObjectsAsTabular(key, objects, header, writer, depth, options);
+                    EncodeArrayOfObjectsAsTabularDirect(key, value, header, writer, depth, options);
                 }
                 else
                 {
@@ -255,6 +278,31 @@ namespace ToonFormat.Internal.Encode
 
             foreach (var arr in values)
             {
+                if (Normalize.IsArrayOfPrimitives(arr))
+                {
+                    var inline = EncodeInlineArrayLine(arr, options.Delimiter, null);
+                    writer.PushListItem(depth + 1, inline);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Encodes an array of arrays as list items directly from JsonArray (no allocation).
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void EncodeArrayOfArraysAsListItemsDirect(
+            string? prefix,
+            JsonArray values,
+            LineWriter writer,
+            int depth,
+            ResolvedEncodeOptions options)
+        {
+            var header = Primitives.FormatHeader(values.Count, prefix, null, options.Delimiter);
+            writer.Push(depth, header);
+
+            for (int i = 0; i < values.Count; i++)
+            {
+                var arr = (JsonArray)values[i]!;
                 if (Normalize.IsArrayOfPrimitives(arr))
                 {
                     var inline = EncodeInlineArrayLine(arr, options.Delimiter, null);
@@ -327,6 +375,38 @@ namespace ToonFormat.Internal.Encode
         }
 
         /// <summary>
+        /// Extracts a uniform header directly from JsonArray without intermediate allocations.
+        /// Returns null if the array cannot be represented in tabular format.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string[]? ExtractTabularHeaderDirect(JsonArray rows)
+        {
+            if (rows.Count == 0)
+                return null;
+
+            var firstRow = rows[0] as JsonObject;
+            if (firstRow == null || firstRow.Count == 0)
+                return null;
+
+            // Extract keys from first row without LINQ
+            var keyCount = firstRow.Count;
+            var firstKeys = new string[keyCount];
+            int idx = 0;
+            foreach (var kvp in firstRow)
+            {
+                firstKeys[idx++] = kvp.Key;
+            }
+
+            // Check if tabular format is possible
+            if (IsTabularArrayDirect(rows, firstKeys))
+            {
+                return firstKeys;
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Checks if an array of objects can be represented in tabular format.
         /// All objects must have the same keys and all values must be primitives.
         /// </summary>
@@ -357,7 +437,38 @@ namespace ToonFormat.Internal.Encode
         }
 
         /// <summary>
+        /// Optimized version that works directly with JsonArray without LINQ allocations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsTabularArrayDirect(JsonArray rows, string[] header)
+        {
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i] as JsonObject;
+                if (row == null)
+                    return false;
+
+                // All objects must have the same number of keys
+                if (row.Count != header.Length)
+                    return false;
+
+                // Check that all header keys exist in the row and all values are primitives
+                for (int j = 0; j < header.Length; j++)
+                {
+                    if (!row.TryGetPropertyValue(header[j], out var value))
+                        return false;
+
+                    if (!Normalize.IsJsonPrimitive(value))
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Writes tabular rows to the writer.
+        /// Optimized to avoid LINQ allocations.
         /// </summary>
         private static void WriteTabularRows(
             IReadOnlyList<JsonObject> rows,
@@ -366,10 +477,70 @@ namespace ToonFormat.Internal.Encode
             int depth,
             ResolvedEncodeOptions options)
         {
-            foreach (var joinedValue in rows.Select(row =>
-                Primitives.EncodeAndJoinPrimitives(header.Select(key => row[key]).ToList(), options.Delimiter)))
+            // Pre-allocate list for row values to avoid repeated allocations
+            var rowValues = new List<JsonNode?>(header.Count);
+
+            foreach (var row in rows)
             {
+                rowValues.Clear();
+                for (int i = 0; i < header.Count; i++)
+                {
+                    rowValues.Add(row[header[i]]);
+                }
+                var joinedValue = Primitives.EncodeAndJoinPrimitives(rowValues, options.Delimiter);
                 writer.Push(depth, joinedValue);
+            }
+        }
+
+        /// <summary>
+        /// Encodes an array of objects in tabular format directly from JsonArray.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void EncodeArrayOfObjectsAsTabularDirect(
+            string? prefix,
+            JsonArray rows,
+            string[] header,
+            LineWriter writer,
+            int depth,
+            ResolvedEncodeOptions options)
+        {
+            var formattedHeader = Primitives.FormatHeader(rows.Count, prefix, header, options.Delimiter);
+            writer.Push(depth, formattedHeader);
+
+            WriteTabularRowsDirect(rows, header, writer, depth + 1, options);
+        }
+
+        /// <summary>
+        /// Writes tabular rows directly from JsonArray.
+        /// Uses ArrayPool for temporary buffer to avoid allocations.
+        /// </summary>
+        private static void WriteTabularRowsDirect(
+            JsonArray rows,
+            string[] header,
+            LineWriter writer,
+            int depth,
+            ResolvedEncodeOptions options)
+        {
+            // Rent a buffer for row values
+            var rowValues = ArrayPool<JsonNode?>.Shared.Rent(header.Length);
+            try
+            {
+                for (int rowIdx = 0; rowIdx < rows.Count; rowIdx++)
+                {
+                    var row = (JsonObject)rows[rowIdx]!;
+                    for (int i = 0; i < header.Length; i++)
+                    {
+                        rowValues[i] = row[header[i]];
+                    }
+                    var joinedValue = Primitives.EncodeAndJoinPrimitivesSpan(
+                        new ReadOnlySpan<JsonNode?>(rowValues, 0, header.Length), 
+                        options.Delimiter);
+                    writer.Push(depth, joinedValue);
+                }
+            }
+            finally
+            {
+                ArrayPool<JsonNode?>.Shared.Return(rowValues, clearArray: true);
             }
         }
 
