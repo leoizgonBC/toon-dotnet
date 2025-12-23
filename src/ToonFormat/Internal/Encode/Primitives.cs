@@ -149,8 +149,8 @@ namespace ToonFormat.Internal.Encode
                 }
             }
 
-            // Fallback to G17 for full precision
-            var fullPrecision = value.ToString("G17", CultureInfo.InvariantCulture);
+            // Fallback to G16 for full precision (16 digits avoids floating-point artifacts)
+            var fullPrecision = value.ToString("G16", CultureInfo.InvariantCulture);
             if (fullPrecision.AsSpan().IndexOfAny('E', 'e') >= 0)
             {
                 fullPrecision = ExpandExponent(value, fullPrecision);

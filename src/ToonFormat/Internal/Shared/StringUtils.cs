@@ -54,11 +54,20 @@ namespace ToonFormat.Internal.Shared
                     case '"':
                         sb.Append("\\\"");
                         break;
+                    case '\r':
+                        // Normalize \r\n to \n, but standalone \r stays as \r
+                        if (i + 1 < span.Length && span[i + 1] == '\n')
+                        {
+                            i++; // Skip the \n, we'll output \n for the whole \r\n sequence
+                            sb.Append("\\n");
+                        }
+                        else
+                        {
+                            sb.Append("\\r");
+                        }
+                        break;
                     case '\n':
                         sb.Append("\\n");
-                        break;
-                    case '\r':
-                        sb.Append("\\r");
                         break;
                     case '\t':
                         sb.Append("\\t");
